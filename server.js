@@ -24,7 +24,13 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({ origin: "*", credentials: true }));
+app.use(
+  cors({
+    origin:
+      "https://porfolio-frontend-bpfsvhirk-pratikjojodes-projects.vercel.app/", // Replace with actual frontend URL
+    credentials: true, // Allow cookies & authentication
+  })
+);
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
