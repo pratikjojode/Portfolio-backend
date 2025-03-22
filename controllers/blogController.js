@@ -1,15 +1,14 @@
 const Blog = require("../models/Blog");
-const path = require("path");
-const fs = require("fs");
+const { cloudinary } = require("../config/cloudinaryConfig");
 
 // ✅ Create a new blog
 exports.createBlog = async (req, res) => {
   try {
     console.log("Incoming Blog Data:", req.body);
-    console.log("Uploaded File:", req.file); // Debugging line
+    console.log("Uploaded File:", req.file);
 
     const { title, content } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : ""; // Store image path
+    const image = req.file ? req.file.path || req.file.secure_url : ""; // ✅ Fix
 
     const blog = new Blog({ title, content, image });
     await blog.save();
@@ -51,12 +50,17 @@ exports.updateBlog = async (req, res) => {
 
     if (!blog) return res.status(404).json({ message: "Blog not found!" });
 
-    // If a new image is uploaded, delete the old one
+    // ✅ Delete old image from Cloudinary before updating
     if (req.file) {
       if (blog.image) {
-        fs.unlinkSync(path.join(__dirname, "..", blog.image)); // Delete old image
+        const publicId = blog.image
+          .split("/")
+          .slice(-2)
+          .join("/")
+          .split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
       }
-      blog.image = `/uploads/${req.file.filename}`;
+      blog.image = req.file.path || req.file.secure_url; // ✅ Fix
     }
 
     blog.title = title || blog.title;
@@ -75,9 +79,10 @@ exports.deleteBlog = async (req, res) => {
     const blog = await Blog.findById(req.params.id);
     if (!blog) return res.status(404).json({ message: "Blog not found!" });
 
-    // Delete blog image
+    // ✅ Delete image from Cloudinary
     if (blog.image) {
-      fs.unlinkSync(path.join(__dirname, "..", blog.image));
+      const publicId = blog.image.split("/").slice(-2).join("/").split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
     }
 
     await blog.deleteOne();

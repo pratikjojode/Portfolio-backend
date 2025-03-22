@@ -3,7 +3,7 @@ const {
   authMiddleware,
   adminMiddleware,
 } = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/uploadMiddleware"); // For image uploads
+// For image uploads
 const {
   createBlog,
   getBlogs,
@@ -11,6 +11,7 @@ const {
   updateBlog,
   deleteBlog,
 } = require("../controllers/blogController");
+const { upload } = require("../config/cloudinaryConfig");
 
 const router = express.Router();
 
