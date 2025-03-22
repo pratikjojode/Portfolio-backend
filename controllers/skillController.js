@@ -1,14 +1,19 @@
+const { cloudinary } = require("../config/cloudinaryConfig");
 const Skill = require("../models/Skill");
-const path = require("path");
-const fs = require("fs");
 
-// ✅ Create Skill with Image Upload
+// ✅ Create Skill with Image Upload to Cloudinary
 exports.createSkill = async (req, res) => {
   try {
     const { name, proficiency } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : ""; // Save image path
+    let imageUrl = "";
 
-    const skill = new Skill({ name, proficiency, image });
+    // Upload image to Cloudinary if provided
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      imageUrl = result.secure_url;
+    }
+
+    const skill = new Skill({ name, proficiency, image: imageUrl });
     await skill.save();
 
     res.status(201).json({ message: "Skill created successfully!", skill });
@@ -39,7 +44,7 @@ exports.getSkillById = async (req, res) => {
   }
 };
 
-// ✅ Update Skill with Image Upload
+// ✅ Update Skill with Cloudinary Image Upload
 exports.updateSkill = async (req, res) => {
   try {
     const { name, proficiency } = req.body;
@@ -47,12 +52,17 @@ exports.updateSkill = async (req, res) => {
 
     if (!skill) return res.status(404).json({ message: "Skill not found!" });
 
-    // Delete old image if new one is uploaded
+    // If new image is uploaded, replace the old one
     if (req.file) {
+      // Delete old image from Cloudinary
       if (skill.image) {
-        fs.unlinkSync(path.join(__dirname, "..", skill.image));
+        const publicId = skill.image.split("/").pop().split(".")[0]; // Extract public ID
+        await cloudinary.uploader.destroy(publicId);
       }
-      skill.image = `/uploads/${req.file.filename}`;
+
+      // Upload new image
+      const result = await cloudinary.uploader.upload(req.file.path);
+      skill.image = result.secure_url;
     }
 
     skill.name = name || skill.name;
@@ -71,9 +81,10 @@ exports.deleteSkill = async (req, res) => {
     const skill = await Skill.findById(req.params.id);
     if (!skill) return res.status(404).json({ message: "Skill not found!" });
 
-    // Delete skill image
+    // Delete image from Cloudinary
     if (skill.image) {
-      fs.unlinkSync(path.join(__dirname, "..", skill.image));
+      const publicId = skill.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
     }
 
     await skill.deleteOne();

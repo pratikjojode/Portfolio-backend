@@ -1,13 +1,19 @@
 const Project = require("../models/Project");
-const path = require("path");
-const fs = require("fs");
+const { cloudinary } = require("../config/cloudinaryConfig");
 
-// ✅ Create a new project with image upload
+// ✅ Create a new project with Cloudinary image upload
 exports.createProject = async (req, res) => {
   try {
     console.log("File received:", req.file);
     const { title, description, technologies, liveUrl, githubUrl } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : "";
+
+    let imageUrl = "";
+    if (req.file) {
+      const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+        folder: "projects",
+      });
+      imageUrl = uploadResponse.secure_url;
+    }
 
     const project = new Project({
       title,
@@ -15,7 +21,7 @@ exports.createProject = async (req, res) => {
       technologies,
       liveUrl,
       githubUrl,
-      image,
+      image: imageUrl,
     });
 
     await project.save();
@@ -48,7 +54,7 @@ exports.getProjectById = async (req, res) => {
   }
 };
 
-// ✅ Update project with image upload
+// ✅ Update project with Cloudinary image upload
 exports.updateProject = async (req, res) => {
   try {
     const { title, description, technologies, liveUrl, githubUrl } = req.body;
@@ -57,13 +63,18 @@ exports.updateProject = async (req, res) => {
     if (!project)
       return res.status(404).json({ message: "Project not found!" });
 
-    // ✅ If a new image is uploaded, delete the old one safely
+    // ✅ If a new image is uploaded, delete the old one from Cloudinary
     if (req.file) {
-      const oldImagePath = path.join(__dirname, "..", project.image);
-      if (project.image && fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
+      if (project.image) {
+        const imagePublicId = project.image.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`projects/${imagePublicId}`);
       }
-      project.image = `/uploads/${req.file.filename}`; // ✅ Update image URL
+
+      // ✅ Upload new image
+      const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
+        folder: "projects",
+      });
+      project.image = uploadResponse.secure_url;
     }
 
     // ✅ Update only provided fields
@@ -80,7 +91,7 @@ exports.updateProject = async (req, res) => {
   }
 };
 
-// ✅ Delete Project with image cleanup
+// ✅ Delete Project with Cloudinary image deletion
 exports.deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -89,12 +100,10 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ message: "Project not found!" });
     }
 
-    // ✅ Delete project image from `uploads/` folder
+    // ✅ Delete project image from Cloudinary
     if (project.image) {
-      const imagePath = path.join(__dirname, "..", project.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath); // Delete file if it exists
-      }
+      const imagePublicId = project.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`projects/${imagePublicId}`);
     }
 
     // ✅ Remove project from the database
