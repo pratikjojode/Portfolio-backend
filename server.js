@@ -24,7 +24,15 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({ origin: "*", credentials: true }));
+// Replace with your exact frontend domain
+const allowedOrigin = "https://www.pratikjojodewebworks.com";
+
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true,
+  })
+);
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
