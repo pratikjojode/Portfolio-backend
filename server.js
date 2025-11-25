@@ -12,6 +12,7 @@ const blogRoutes = require("./routes/blogRoutes");
 const collaborationRoutes = require("./routes/collaborationRoutes");
 const issuesRoute = require("./routes/issuesRoutes");
 const contactRoute = require("./routes/contactRoute");
+const maintenanceRoutes=require('./routes/maintenanceRoutes')
 const path = require("path");
 dotenv.config();
 connectDB();
@@ -45,6 +46,7 @@ app.use("/api/v1/blogs", blogRoutes);
 app.use("/api/v1/collaboration", collaborationRoutes);
 app.use("/api/v1/issues", issuesRoute);
 app.use("/api/v1/contact", contactRoute);
+app.use("/api/v1/maintenance", maintenanceRoutes);
 
 // routes
 app.get("/", (req, res) => {
